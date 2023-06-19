@@ -77,11 +77,18 @@ func TestBundle(t *testing.T) {
 			t.Logf("config file after localstack host replace %s", string(readFile(parameter.dataInput+configJSON)))
 			common.CopyFile(parameter.dataInput+configJSON, configOutputPath)
 			common.CopyFile(parameter.dataInput+commonConfigTOML, commonConfigOutputPath)
+
+			// clear journal logs before starting. this is a safeguard, but not super critical for the test itself.
+			err := common.RotateJournalLogs()
+			if err != nil {
+				t.Logf("failed to rotate journal logs: %v", err)
+			}
+
 			common.StartAgent(configOutputPath, true, false)
 			time.Sleep(agentRuntime)
 			log.Printf("Agent has been running for : %s", agentRuntime.String())
 			common.StopAgent()
-			output := common.ReadAgentOutput(agentRuntime)
+			output := common.ReadAgentOutput(agentRuntime + 1*time.Second) // add an extra second to try to ensure we capture all of the logs
 			containsTarget := outputLogContainsTarget(output)
 			if (parameter.findTarget && !containsTarget) || (!parameter.findTarget && containsTarget) {
 				t.Errorf("Find target is %t contains target is %t", parameter.findTarget, containsTarget)

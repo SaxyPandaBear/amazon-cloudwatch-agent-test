@@ -216,3 +216,22 @@ func ReplaceLocalStackHostName(pathIn string) {
 		log.Fatal(fmt.Sprint(err) + string(out))
 	}
 }
+
+// RotateJournalLogs attempts to cleanly delete journald logs from the host,
+// so that we can ensure that when we query for older agent systemd logs, we minimize the chances
+// of getting a false positive.
+func RotateJournalLogs() error {
+	out, err := exec.Command("bash", "-c", "sudo journalctl --rotate").Output()
+	if err != nil {
+		printOutputAndError(out, err)
+		return err
+	}
+
+	out, err = exec.Command("bash", "-c", "sudo journalctl --vacuum-time=1s").Output()
+	if err != nil {
+		printOutputAndError(out, err)
+		return err
+	}
+
+	return nil
+}
